@@ -31,4 +31,9 @@ class Institution extends Model
     {
         return $this->hasMany(AcademicYear::class);
     }
+
+    public function exams()
+    {
+        return $this->hasMany(Exam::class);
+    }
 }

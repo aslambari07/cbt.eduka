@@ -39,6 +39,11 @@ class Question extends Model
         return $this->hasMany(QuestionOption::class)->orderBy('sort_order');
     }
 
+    public function exams()
+    {
+        return $this->belongsToMany(Exam::class, 'exam_questions')->withPivot(['sort_order', 'points', 'required']);
+    }
+
     public function publicRenderData(): array
     {
         return app(QuestionTypeRegistry::class)->for($this->type)->renderData($this, false);

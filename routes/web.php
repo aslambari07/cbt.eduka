@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\Teacher\ExamController;
 use App\Http\Controllers\Teacher\QuestionController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,4 +23,6 @@ Route::middleware('auth')->group(function (): void {
 
 Route::middleware(['auth', 'role:teacher,admin'])->prefix('teacher')->name('teacher.')->group(function (): void {
     Route::resource('questions', QuestionController::class)->except(['show']);
+    Route::post('exams/{exam}/transition', [ExamController::class, 'transition'])->name('exams.transition');
+    Route::resource('exams', ExamController::class)->except(['show']);
 });
