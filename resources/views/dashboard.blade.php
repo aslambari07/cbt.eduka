@@ -1,0 +1,5 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="min-h-screen bg-obsidian p-6 text-white sm:p-10"><div class="mx-auto max-w-6xl"><header class="flex items-center justify-between border-b border-line pb-6"><div><p class="cbt-eyebrow">RUANG CBT.EDUKA</p><h1 class="mt-4 font-serif text-4xl font-bold">Selamat datang, {{ auth()->user()->name }}.</h1><p class="mt-2 text-sm text-muted">Dashboard dasar siap. Modul peran akan terhubung pada fase berikutnya.</p></div><form action="{{ route('logout') }}" method="post">@csrf<button class="cbt-button-secondary min-h-11">Keluar <iconify-icon icon="lucide:log-out"></iconify-icon></button></form></header><div class="mt-8 grid gap-5 md:grid-cols-3"><div class="cbt-card"><p class="text-xs text-muted">Status akun</p><p class="mt-3 text-2xl font-semibold text-success">Aktif</p></div><div class="cbt-card"><p class="text-xs text-muted">Email</p><p class="mt-3 truncate text-sm">{{ auth()->user()->email }}</p></div><div class="cbt-card"><p class="text-xs text-muted">Peran</p><p class="mt-3 text-sm">Peserta</p></div></div></div></div>
+@endsection
