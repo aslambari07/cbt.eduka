@@ -17,7 +17,11 @@ class EnsureUserHasRole
             abort(403);
         }
 
-        $allowed = collect($roles)->map(fn (string $role) => Role::tryFrom($role))->filter()->all();
+        $allowed = collect($roles)
+            ->flatMap(fn (string $role) => explode(',', $role))
+            ->map(fn (string $role) => Role::tryFrom(trim($role)))
+            ->filter()
+            ->all();
 
         abort_unless($user->hasRole($allowed), 403);
 
