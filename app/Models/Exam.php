@@ -64,6 +64,11 @@ class Exam extends Model
         return $this->hasMany(ExamAssignment::class);
     }
 
+    public function sessions()
+    {
+        return $this->hasMany(ExamSession::class);
+    }
+
     public function isOpenAt(?\DateTimeInterface $at = null): bool
     {
         $at = $at ? now()->setTimestamp($at->getTimestamp()) : now();
