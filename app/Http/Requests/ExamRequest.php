@@ -24,6 +24,7 @@ class ExamRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:160'],
             'code' => ['required', 'string', 'max:80', Rule::unique('exams', 'code')->ignore($exam?->id)],
+            'institution_id' => [Rule::requiredIf(fn (): bool => $this->user()->hasRole('admin')), 'nullable', 'integer', 'exists:institutions,id'],
             'subject_id' => ['required', 'integer', 'exists:subjects,id'],
             'class_id' => ['nullable', 'integer', 'exists:classes,id'],
             'description' => ['nullable', 'string', 'max:5000'],

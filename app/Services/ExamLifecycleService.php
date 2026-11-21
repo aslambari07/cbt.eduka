@@ -3,12 +3,16 @@
 namespace App\Services;
 
 use App\Enums\ExamStatus;
+use App\Jobs\NotifyExamAssignmentsJob;
 use App\Models\Exam;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
 
 class ExamLifecycleService
 {
+    public function __construct(private readonly AuditLogService $auditLog) {}
+
     /** @var array<string, list<ExamStatus>> */
     private array $allowed = [
         'draft' => [ExamStatus::SCHEDULED, ExamStatus::PUBLISHED, ExamStatus::ARCHIVED],
@@ -19,7 +23,7 @@ class ExamLifecycleService
         'archived' => [],
     ];
 
-    public function transition(Exam $exam, ExamStatus $target, ?CarbonImmutable $now = null): Exam
+    public function transition(Exam $exam, ExamStatus $target, ?CarbonImmutable $now = null, ?User $actor = null): Exam
     {
         $current = $exam->status;
         $now ??= CarbonImmutable::now();
@@ -41,6 +45,10 @@ class ExamLifecycleService
         }
 
         $exam->forceFill(['status' => $target])->save();
+        $this->auditLog->record($actor, 'exam.status_changed', $exam, ['from' => $current->value, 'to' => $target->value]);
+        if ($target === ExamStatus::PUBLISHED) {
+            NotifyExamAssignmentsJob::dispatch($exam->id)->afterCommit();
+        }
 
         return $exam->refresh();
     }

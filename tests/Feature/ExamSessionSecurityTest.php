@@ -39,6 +39,7 @@ class ExamSessionSecurityTest extends TestCase
         $this->assertSame(1, $saved->version);
         $this->assertSame('B', $restored['questions'][0]['answer']);
         $this->assertSame(ExamSessionStatus::SAVED, $session->fresh()->status);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'exam.answer_saved', 'actor_id' => $student->id]);
     }
 
     public function test_stale_answer_request_cannot_overwrite_newer_answer(): void

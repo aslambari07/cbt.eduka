@@ -6,6 +6,7 @@ use App\Enums\ExamStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExamRequest;
 use App\Models\Exam;
+use App\Models\Institution;
 use App\Models\Question;
 use App\Models\SchoolClass;
 use App\Models\Subject;
@@ -80,19 +81,21 @@ class ExamController extends Controller
         $data = $request->validate(['status' => ['required', 'string']]);
         $status = ExamStatus::tryFrom($data['status']);
         abort_unless($status, 422, 'Status ujian tidak valid.');
-        $this->lifecycle->transition($exam, $status);
+        $this->lifecycle->transition($exam, $status, actor: $request->user());
 
         return back()->with('status', 'Status ujian diperbarui.');
     }
 
     private function formData(Request $request): array
     {
+        $isAdmin = $request->user()->hasRole('admin');
         $institutionId = $request->user()->institution_id;
 
         return [
-            'subjects' => Subject::query()->where('institution_id', $institutionId)->orderBy('name')->get(),
-            'classes' => SchoolClass::query()->where('institution_id', $institutionId)->with('students')->orderBy('name')->get(),
-            'questions' => Question::query()->whereHas('subject', fn ($q) => $q->where('institution_id', $institutionId))->with('subject')->latest()->get(),
+            'institutions' => $isAdmin ? Institution::query()->orderBy('name')->get() : collect(),
+            'subjects' => Subject::query()->when(! $isAdmin, fn ($q) => $q->where('institution_id', $institutionId))->orderBy('name')->get(),
+            'classes' => SchoolClass::query()->when(! $isAdmin, fn ($q) => $q->where('institution_id', $institutionId))->with('students')->orderBy('name')->get(),
+            'questions' => Question::query()->whereHas('subject', fn ($q) => $q->when(! $isAdmin, fn ($subject) => $subject->where('institution_id', $institutionId)))->with('subject')->latest()->get(),
             'statuses' => ExamStatus::cases(),
         ];
     }

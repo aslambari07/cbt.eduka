@@ -13,6 +13,11 @@ class SchoolClassPolicy
         return $user->isActive() && $user->hasRole([Role::ADMIN, Role::TEACHER, Role::STUDENT]);
     }
 
+    public function create(User $user): bool
+    {
+        return $user->isActive() && $user->hasRole(Role::ADMIN);
+    }
+
     public function view(User $user, SchoolClass $class): bool
     {
         return $this->canAccess($user, $class);

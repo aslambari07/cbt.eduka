@@ -34,7 +34,7 @@ class QuestionController extends Controller
 
         return view('teacher.questions.index', [
             'questions' => $query->paginate(12)->withQueryString(),
-            'subjects' => Subject::query()->where('institution_id', $user->institution_id)->orderBy('name')->get(),
+            'subjects' => Subject::query()->when(! $user->hasRole('admin'), fn ($q) => $q->where('institution_id', $user->institution_id))->orderBy('name')->get(),
         ]);
     }
 
@@ -43,7 +43,7 @@ class QuestionController extends Controller
         $this->authorize('create', Question::class);
 
         return view('teacher.questions.create', [
-            'subjects' => Subject::query()->where('institution_id', $request->user()->institution_id)->orderBy('name')->get(),
+            'subjects' => Subject::query()->when(! $request->user()->hasRole('admin'), fn ($q) => $q->where('institution_id', $request->user()->institution_id))->orderBy('name')->get(),
         ]);
     }
 
@@ -83,7 +83,7 @@ class QuestionController extends Controller
     {
         $this->authorize('update', $question);
 
-        return view('teacher.questions.edit', ['question' => $question->load('options'), 'subjects' => Subject::query()->where('institution_id', request()->user()->institution_id)->orderBy('name')->get()]);
+        return view('teacher.questions.edit', ['question' => $question->load('options'), 'subjects' => Subject::query()->when(! request()->user()->hasRole('admin'), fn ($q) => $q->where('institution_id', request()->user()->institution_id))->orderBy('name')->get()]);
     }
 
     public function update(QuestionRequest $request, Question $question): RedirectResponse
@@ -117,6 +117,6 @@ class QuestionController extends Controller
 
     private function ensureSubjectBelongsToUser(Request $request, int $subjectId): void
     {
-        abort_unless(Subject::query()->whereKey($subjectId)->where('institution_id', $request->user()->institution_id)->exists(), 403);
+        abort_unless($request->user()->hasRole('admin') || Subject::query()->whereKey($subjectId)->where('institution_id', $request->user()->institution_id)->exists(), 403);
     }
 }

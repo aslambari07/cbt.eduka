@@ -1,0 +1,2 @@
+@if(session('status'))<div class="mt-5 rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">{{ session('status') }}</div>@endif
+@if($errors->any())<div class="mt-5 rounded-lg border border-error/40 bg-error/10 p-4 text-sm text-error"><p class="font-semibold">Periksa kembali input:</p><ul class="mt-2 list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif

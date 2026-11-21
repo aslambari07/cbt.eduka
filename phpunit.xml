@@ -33,6 +33,16 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="AI_ENABLED" value="false"/>
+        <env name="AI_PROVIDER" value="unavailable"/>
+        <env name="AI_API_KEY" value=""/>
+        <env name="AI_MODEL" value="openai/gpt-oss-20b"/>
+        <env name="AI_BASE_URL" value="https://api.groq.com/openai/v1"/>
+        <env name="CBT_DEMO_ACCOUNTS_ENABLED" value="true"/>
+        <env name="CBT_DEMO_PASSWORD" value="EdukaDemo2026!"/>
+        <env name="CBT_DEMO_ADMIN_EMAIL" value="admin@eduka.test"/>
+        <env name="CBT_DEMO_TEACHER_EMAIL" value="pengajar@eduka.test"/>
+        <env name="CBT_DEMO_STUDENT_EMAIL" value="siswa@eduka.test"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

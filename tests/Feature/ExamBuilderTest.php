@@ -65,6 +65,27 @@ class ExamBuilderTest extends TestCase
         $this->assertDatabaseHas('exams', ['code' => 'EXAM-BUILDER-001', 'owner_id' => $teacher->id]);
     }
 
+    public function test_global_admin_can_create_an_exam_for_an_explicit_institution(): void
+    {
+        $admin = User::factory()->create(['role' => Role::ADMIN, 'institution_id' => null]);
+        $institution = Institution::factory()->create();
+        $subject = Subject::factory()->create(['institution_id' => $institution->id]);
+        $question = Question::factory()->create(['subject_id' => $subject->id]);
+
+        $this->actingAs($admin)->post(route('teacher.exams.store'), [
+            'institution_id' => $institution->id,
+            'name' => 'Admin lintas institusi',
+            'code' => 'EXAM-ADMIN-001',
+            'subject_id' => $subject->id,
+            'duration_minutes' => 45,
+            'passing_grade' => 75,
+            'total_points' => 1,
+            'question_ids' => [$question->id],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('exams', ['code' => 'EXAM-ADMIN-001', 'institution_id' => $institution->id, 'owner_id' => $admin->id]);
+    }
+
     public function test_teacher_cannot_build_an_exam_with_a_question_from_another_institution(): void
     {
         $institution = Institution::factory()->create();
@@ -101,5 +122,25 @@ class ExamBuilderTest extends TestCase
         ]);
 
         $this->assertFalse($intruder->can('update', $exam));
+    }
+
+    public function test_teacher_cannot_assign_a_student_from_another_institution(): void
+    {
+        $institution = Institution::factory()->create();
+        $otherInstitution = Institution::factory()->create();
+        $teacher = User::factory()->create(['role' => Role::TEACHER, 'institution_id' => $institution->id]);
+        $subject = Subject::factory()->create(['institution_id' => $institution->id]);
+        $foreignStudent = User::factory()->create(['role' => Role::STUDENT, 'institution_id' => $otherInstitution->id]);
+
+        $this->expectException(ValidationException::class);
+
+        app(ExamBuilderService::class)->createDraft($teacher, [
+            'name' => 'Tidak boleh assign lintas institusi',
+            'code' => 'EXAM-BLOCKED-STUDENT-001',
+            'subject_id' => $subject->id,
+            'duration_minutes' => 30,
+            'passing_grade' => 75,
+            'total_points' => 1,
+        ], [], [$foreignStudent->id]);
     }
 }

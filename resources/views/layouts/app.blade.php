@@ -13,6 +13,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-obsidian text-white">
+    @include('components.auth-mobile-nav')
     {{ $slot ?? '' }}
     @yield('content')
 </body>

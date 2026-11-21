@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\ExamAssignmentStatus;
 use App\Enums\ExamSessionStatus;
 use App\Enums\ExamStatus;
+use App\Enums\QuestionType;
 use App\Enums\Role;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
@@ -19,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 
 class ExamSessionService
 {
-    public function __construct(private readonly AnswerPayloadValidator $answerValidator) {}
+    public function __construct(private readonly AnswerPayloadValidator $answerValidator, private readonly AuditLogService $auditLog) {}
 
     public function start(User $student, Exam $exam): ExamSession
     {
@@ -114,6 +115,17 @@ class ExamSessionService
             if ($optionOrder !== []) {
                 $options = collect($rendered['options'])->keyBy('key');
                 $rendered['options'] = collect($optionOrder)->map(fn ($key) => $options->get($key))->filter()->values()->all();
+            }
+            if ($question->type === QuestionType::MATCHING) {
+                $pairs = $question->definition['pairs'] ?? [];
+                $rendered['matching_items'] = array_keys($pairs);
+                $rendered['matching_choices'] = $this->stableOrder(array_values($pairs), $session->session_key.'|matching|'.$question->id);
+            }
+            if ($question->type === QuestionType::ORDERING) {
+                $rendered['ordering_items'] = $this->stableOrder($question->definition['correct_order'] ?? [], $session->session_key.'|ordering|'.$question->id);
+            }
+            if ($question->type === QuestionType::FILL_BLANK) {
+                $rendered['blank_count'] = count($question->definition['blanks'] ?? []);
             }
             $rendered['answer'] = $answers->get($question->id)?->answer;
             $rendered['answer_version'] = $answers->get($question->id)?->version ?? 0;
@@ -239,5 +251,14 @@ class ExamSessionService
     private function event(ExamSession $session, string $type, ?User $actor = null, array $payload = []): void
     {
         $session->events()->create(['actor_id' => $actor?->id, 'type' => $type, 'payload' => $payload, 'occurred_at' => now()]);
+        $this->auditLog->record($actor, 'exam.'.$type, $session, $payload);
+    }
+
+    /** @param list<string> $items */
+    private function stableOrder(array $items, string $seed): array
+    {
+        usort($items, fn (string $left, string $right): int => strcmp(hash('sha256', $seed.'|'.$left), hash('sha256', $seed.'|'.$right)));
+
+        return array_values($items);
     }
 }

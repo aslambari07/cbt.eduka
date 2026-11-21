@@ -7,6 +7,8 @@ use App\Http\Requests\SaveExamAnswerRequest;
 use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\Question;
+use App\Services\ExamGradingService;
+use App\Services\ExamPublicationService;
 use App\Services\ExamSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +17,7 @@ use Illuminate\View\View;
 
 class ExamSessionController extends Controller
 {
-    public function __construct(private readonly ExamSessionService $sessions) {}
+    public function __construct(private readonly ExamSessionService $sessions, private readonly ExamGradingService $grading, private readonly ExamPublicationService $publication) {}
 
     public function start(Request $request, int $exam): RedirectResponse
     {
@@ -52,8 +54,10 @@ class ExamSessionController extends Controller
     public function submit(Request $request, ExamSession $session): RedirectResponse
     {
         $this->authorize('update', $session);
-        $this->sessions->submit($session, $request->user());
+        $submitted = $this->sessions->submit($session, $request->user());
+        $result = $this->grading->grade($submitted);
+        $this->publication->publishAutomatically($result);
 
-        return redirect()->route('student.sessions.show', $session)->with('status', 'Ujian berhasil dikirim dan sedang diproses.');
+        return redirect()->route('student.sessions.show', $session)->with('status', $result->status->value === 'published' ? 'Ujian selesai. Hasil sudah tersedia.' : 'Ujian berhasil dikirim dan sedang diproses.');
     }
 }

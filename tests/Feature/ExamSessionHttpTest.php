@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ExamResultStatus;
 use App\Enums\ExamStatus;
 use App\Enums\QuestionType;
 use App\Enums\Role;
@@ -28,6 +29,31 @@ class ExamSessionHttpTest extends TestCase
 
         $this->actingAs($student)->get(route('student.sessions.show', $session))->assertOk()->assertDontSee('correct_option')->assertDontSee('is_correct');
         $this->actingAs($student)->postJson(route('student.sessions.answers', [$session, $question]), ['answer' => 'B', 'client_version' => 0])->assertOk()->assertJsonPath('status', 'saved')->assertJsonPath('answer', 'B');
+    }
+
+    public function test_submission_automatically_creates_a_result(): void
+    {
+        [$exam, $student, $question] = $this->fixture();
+        $session = app(ExamSessionService::class)->start($student, $exam);
+        $this->actingAs($student)->postJson(route('student.sessions.answers', [$session, $question]), ['answer' => 'B', 'client_version' => 0])->assertOk();
+
+        $this->actingAs($student)->post(route('student.sessions.submit', $session))->assertRedirect();
+
+        $this->assertDatabaseHas('exam_results', ['exam_session_id' => $session->id, 'status' => 'graded', 'score' => 100]);
+        $this->assertDatabaseHas('exam_sessions', ['id' => $session->id, 'status' => 'completed']);
+    }
+
+    public function test_immediate_result_visibility_publishes_after_submission(): void
+    {
+        [$exam, $student, $question] = $this->fixture();
+        $exam->update(['results_visibility' => 'immediate']);
+        $session = app(ExamSessionService::class)->start($student, $exam);
+        $this->actingAs($student)->postJson(route('student.sessions.answers', [$session, $question]), ['answer' => 'B', 'client_version' => 0])->assertOk();
+
+        $this->actingAs($student)->post(route('student.sessions.submit', $session))->assertRedirect();
+
+        $this->assertDatabaseHas('exam_results', ['exam_session_id' => $session->id, 'status' => ExamResultStatus::PUBLISHED->value]);
+        $this->actingAs($student)->get(route('student.results.index'))->assertSee($exam->name);
     }
 
     /** @return array{0: Exam, 1: User, 2: Question} */
